@@ -19,11 +19,13 @@ namespace Customer.POC;
 public class Orchestrator
 {
     
-    private ICustomerCreationClient _customerCreationClient;
+    private readonly ICustomerCreationClient _customerCreationClient;
+    private readonly ICustomerDatabaseClient _customerDatabaseClient;
 
-    public Orchestrator(ICustomerCreationClient customerCreationClient)
+    public Orchestrator(ICustomerCreationClient customerCreationClient, ICustomerDatabaseClient customerDatabaseClient)
     {
         _customerCreationClient = customerCreationClient;
+        _customerDatabaseClient = customerDatabaseClient;
     }
     
     [FunctionName("Orchestrator")]
@@ -43,9 +45,17 @@ public class Orchestrator
                 // create customer by calling 3rd party
                 var customerCreationResult =
                     await context.CallActivityAsync<bool>("Activity_CreateCustomer_ThirdParty", request);
+                
+                
+                // retrieve something from table storage- what about cacheing the data?
+                // create customer in database (cosmos db) 
 
+                var customerCosmosCreationResult =
+                    await context.CallActivityAsync<bool>("Activity_CreateCustomer_CosmosDb", request);
+                // first use key
+                // todo use managed identity 
 
-                // create customer in database
+                // send email
 
             }
             else
@@ -60,16 +70,25 @@ public class Orchestrator
         }
 
         return outputs;
-         
     }
 
+    [FunctionName("Activity_CreateCustomer_CosmosDb")]
+    public async Task<bool>CreateCustomerCosmosDb([ActivityTrigger] CustomerModel customerRequest, ILogger log)
+    {
+        log.LogInformation("Creating customer in cosmos db");
+        var customerDbCreationResult = await _customerDatabaseClient.CreateCustomer(customerRequest);
+        return false;
+    }
     [FunctionName("Activity_CreateCustomer_ThirdParty")]
     public async Task<bool> CreateCustomerThirdParty([ActivityTrigger] CustomerModel customerRequest, ILogger log)
     {
         log.LogInformation("Creating Customer in third party API");
-        var customerCreationResult = _customerCreationClient.CreateCustomer(customerRequest);
-        
-        
+        var customerCreationResult = await _customerCreationClient.CreateCustomerAsync(customerRequest);
+
+        if (customerCreationResult)
+        {
+            log.LogInformation(("Yay customer created"));
+        }
         return false;
     }
     

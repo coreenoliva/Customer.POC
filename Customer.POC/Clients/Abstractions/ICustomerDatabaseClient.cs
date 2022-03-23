@@ -3,7 +3,7 @@ using Customer.POC.Models;
 
 namespace Customer.POC.Clients.Abstractions;
 
-public interface ICustomerCreationClient
+public interface ICustomerDatabaseClient
 {
-    public Task<bool> CreateCustomerAsync(CustomerModel request);
+    public Task<bool> CreateCustomer(CustomerModel customer);
 }
