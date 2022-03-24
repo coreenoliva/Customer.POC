@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Customer.POC.Models;
 using Customer.POC.Validators;
+using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Customer.POC;
@@ -21,11 +22,16 @@ public class Orchestrator
     
     private readonly ICustomerCreationClient _customerCreationClient;
     private readonly ICustomerDatabaseClient _customerDatabaseClient;
+    private readonly IEmailClient _emailClient;
 
-    public Orchestrator(ICustomerCreationClient customerCreationClient, ICustomerDatabaseClient customerDatabaseClient)
+    public Orchestrator(
+        ICustomerCreationClient customerCreationClient, 
+        ICustomerDatabaseClient customerDatabaseClient,
+        IEmailClient emailClient)
     {
         _customerCreationClient = customerCreationClient;
         _customerDatabaseClient = customerDatabaseClient;
+        _emailClient = emailClient;
     }
     
     [FunctionName("Orchestrator")]
@@ -56,15 +62,10 @@ public class Orchestrator
                     if (customerCosmosCreationResult)
                     {
                         // send email
-
+                        var sendEmailResult =
+                            await context.CallActivityAsync<bool>("Activity_SendEmail_Customer", request);
                     }
                 }
-                
-
-
-
-                
-
             }
             else
             {
@@ -109,6 +110,21 @@ public class Orchestrator
             log.LogInformation(("Yay customer created"));
             return true;
         }
+        return false;
+    }
+
+    [FunctionName("Activity_SendEmail_Customer")]
+    public async Task<bool> SendCustomerEmail([ActivityTrigger] CustomerModel customerRequest, ILogger log)
+    {
+        log.LogInformation("Sending email");
+        var sendEmailResult = await _emailClient.SendCustomerCreatedEmail(customerRequest);
+        if (sendEmailResult)
+        {
+            log.LogInformation("Email successfully sent");
+            return true;
+        }
+        
+        log.LogInformation("Unable to send email");
         return false;
     }
     

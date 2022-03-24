@@ -39,5 +39,6 @@ public class Startup : FunctionsStartup
         
         builder.Services.AddSingleton<ICustomerCreationClient, CustomerCreationClient>();
         builder.Services.AddSingleton<ICustomerDatabaseClient, CustomerDatabaseClient>();
+        builder.Services.AddSingleton<IEmailClient, EmailClient>();
     }
 }
