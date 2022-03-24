@@ -45,17 +45,25 @@ public class Orchestrator
                 // create customer by calling 3rd party
                 var customerCreationResult =
                     await context.CallActivityAsync<bool>("Activity_CreateCustomer_ThirdParty", request);
-                
-                
-                // retrieve something from table storage- what about cacheing the data?
-                // create customer in database (cosmos db) 
+                if (customerCreationResult)
+                {
+                    // retrieve something from table storage- what about cacheing the data?
+                    // create customer in database (cosmos db) 
+                    // todo use managed identity 
+                    var customerCosmosCreationResult =
+                        await context.CallActivityAsync<bool>("Activity_CreateCustomer_CosmosDb", request);
 
-                var customerCosmosCreationResult =
-                    await context.CallActivityAsync<bool>("Activity_CreateCustomer_CosmosDb", request);
-                // first use key
-                // todo use managed identity 
+                    if (customerCosmosCreationResult)
+                    {
+                        // send email
 
-                // send email
+                    }
+                }
+                
+
+
+
+                
 
             }
             else
@@ -77,6 +85,17 @@ public class Orchestrator
     {
         log.LogInformation("Creating customer in cosmos db");
         var customerDbCreationResult = await _customerDatabaseClient.CreateCustomer(customerRequest);
+        if (customerDbCreationResult)
+        {
+            // log id
+            log.LogInformation("Customer successfully created in cosmos db");
+            return true;
+        }
+        else
+        {
+            log.LogInformation("Customer not updated in cosmos db");
+        }
+
         return false;
     }
     [FunctionName("Activity_CreateCustomer_ThirdParty")]
@@ -88,6 +107,7 @@ public class Orchestrator
         if (customerCreationResult)
         {
             log.LogInformation(("Yay customer created"));
+            return true;
         }
         return false;
     }

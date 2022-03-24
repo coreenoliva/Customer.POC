@@ -4,7 +4,7 @@ public static class Constants
 {
     public static class CosmosDb
     {
-        public static string databaseName = "customer";
-        public static string containerName = "playground";
+        public static string databaseName = "playground";
+        public static string containerName = "customer";
     }
 }

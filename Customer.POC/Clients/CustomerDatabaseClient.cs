@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Threading.Tasks;
 using Customer.POC.Clients.Abstractions;
 using Customer.POC.Models;
@@ -20,15 +21,24 @@ public class CustomerDatabaseClient : ICustomerDatabaseClient
 
     public async Task<bool> CreateCustomer(CustomerModel customer)
     {
-        var cosmosClient = new CosmosClient(_cosmosConnectionString.ToString(), _cosmosAccessKey);
+        var cosmosClient = new CosmosClient(_cosmosConnectionString.ToString());
         var container = cosmosClient.GetContainer(Constants.CosmosDb.databaseName, Constants.CosmosDb.containerName);
         
-        // create new customer 
+        //todo - maybe dupe check? 
         var cosmosDbModel = new CustomerModelCosmos().CreateCustomer(customer);
-        
-        // check if customer exists
-        
-        // if not, create
+    
+        try
+        {
+            var itemCreationResult = await container.CreateItemAsync(cosmosDbModel);
+            if (itemCreationResult.StatusCode == HttpStatusCode.Created)
+            {
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            var error = ex;
+        }
         return false;
     }
 }
