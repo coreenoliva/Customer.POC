@@ -129,7 +129,7 @@ public class Orchestrator
     }
     
     [FunctionName("Activity_Validator")]
-    public async Task<bool> ValidateRequest([ActivityTrigger] CustomerModel customerRequest, ILogger log)
+    public bool ValidateRequest([ActivityTrigger] CustomerModel customerRequest, ILogger log)
     {
         log.LogInformation($"Validating Request Payload");
         var validator = new InputValidator();
@@ -140,7 +140,6 @@ public class Orchestrator
         var validationResult = validator.Validate(customerRequest);
 
         return validationResult.IsValid;
-
     }
     
 

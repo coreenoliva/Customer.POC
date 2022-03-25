@@ -22,11 +22,11 @@ public class EmailClient : IEmailClient
         try
         {
             var emailClient = new SendGridClient(_sendGridKey);
-            var from = new EmailAddress("coreen.oliva@bjss.com", "Example User");
-            var subject = "Sending with SendGrid is Fun";
-            var to = new EmailAddress("coreenoliva@gmail.com", "Example User");
-            var plainTextContent = "and easy to do anywhere, even with C#";
-            var htmlContent = "<strong>and easy to do anywhere, even with C#</strong>";
+            var from = new EmailAddress(Constants.Email.CustomerCreated.fromEmail, "Example User");
+            var subject = Constants.Email.CustomerCreated.subject;
+            var to = new EmailAddress(Constants.Email.CustomerCreated.toEmail, "Example User");
+            var plainTextContent = Constants.Email.CustomerCreated.content;
+            var htmlContent = $"<strong>{Constants.Email.CustomerCreated.content}</strong>";
             var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
 
             var response = await emailClient.SendEmailAsync(msg);
@@ -35,9 +35,21 @@ public class EmailClient : IEmailClient
         catch (Exception ex)
         {
             return false;
-            
         }
-
-        return false;
     }
+
+    public async Task<bool> SendCustomerCreationFailedEmail(CustomerModel customerModel)
+    {
+        try
+        {
+            var emailClient = new SendGridClient(_sendGridKey);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+    
 }
