@@ -1,31 +1,26 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Customer.POC.Clients.Abstractions;
+using Customer.POC.Models;
+using Customer.POC.Validators;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Customer.POC.Models;
-using Customer.POC.Validators;
-using Microsoft.AspNetCore.Hosting.Internal;
-using Microsoft.AspNetCore.Mvc;
 
 namespace Customer.POC;
 
 public class Orchestrator
 {
-    
     private readonly ICustomerCreationClient _customerCreationClient;
     private readonly ICustomerDatabaseClient _customerDatabaseClient;
     private readonly IEmailClient _emailClient;
 
     public Orchestrator(
-        ICustomerCreationClient customerCreationClient, 
+        ICustomerCreationClient customerCreationClient,
         ICustomerDatabaseClient customerDatabaseClient,
         IEmailClient emailClient)
     {
@@ -33,15 +28,17 @@ public class Orchestrator
         _customerDatabaseClient = customerDatabaseClient;
         _emailClient = emailClient;
     }
-    
+
     [FunctionName("Orchestrator")]
     public async Task<List<string>> RunOrchestrator(
-        [OrchestrationTrigger] IDurableOrchestrationContext context)
+        [OrchestrationTrigger] IDurableOrchestrationContext context, ILogger log)
     {
         var outputs = new List<string>();
         try
         {
             var request = context.GetInput<CustomerModel>();
+
+            // todo add retries for transient errors 
             // validate 
             var validationResult =
                 await context.CallActivityAsync<bool>("Activity_Validator", request);
@@ -64,25 +61,38 @@ public class Orchestrator
                         // send email
                         var sendEmailResult =
                             await context.CallActivityAsync<bool>("Activity_SendEmail_Customer", request);
+                        if (!sendEmailResult) outputs.Add("Error sending customer created email");
                     }
+                    else
+                    {
+                        {
+                            outputs.Add("Unable to create customer in cosmos db");
+                        }
+                    }
+                }
+                else
+                {
+                    outputs.Add("Unable to create customer in third party API");
                 }
             }
             else
             {
-                // invalid requests
                 outputs.Add("Request invalid");
             }
         }
         catch (Exception ex)
         {
-            outputs.Add("Unexpected error occurred.");
+            outputs.Add("Unhandled exception while creating customer");
+            log.LogError(ex, "Unhandled exception while creating customer");
+            // throw error to fail the orchestration
+            throw;
         }
 
         return outputs;
     }
 
     [FunctionName("Activity_CreateCustomer_CosmosDb")]
-    public async Task<bool>CreateCustomerCosmosDb([ActivityTrigger] CustomerModel customerRequest, ILogger log)
+    public async Task<bool> CreateCustomerCosmosDb([ActivityTrigger] CustomerModel customerRequest, ILogger log)
     {
         log.LogInformation("Creating customer in cosmos db");
         var customerDbCreationResult = await _customerDatabaseClient.CreateCustomer(customerRequest);
@@ -92,13 +102,11 @@ public class Orchestrator
             log.LogInformation("Customer successfully created in cosmos db");
             return true;
         }
-        else
-        {
-            log.LogInformation("Customer not updated in cosmos db");
-        }
 
+        log.LogInformation("Customer not updated in cosmos db");
         return false;
     }
+
     [FunctionName("Activity_CreateCustomer_ThirdParty")]
     public async Task<bool> CreateCustomerThirdParty([ActivityTrigger] CustomerModel customerRequest, ILogger log)
     {
@@ -107,9 +115,10 @@ public class Orchestrator
 
         if (customerCreationResult)
         {
-            log.LogInformation(("Yay customer created"));
+            log.LogInformation("Yay customer created");
             return true;
         }
+
         return false;
     }
 
@@ -123,25 +132,25 @@ public class Orchestrator
             log.LogInformation("Email successfully sent");
             return true;
         }
-        
+
         log.LogInformation("Unable to send email");
         return false;
     }
-    
+
     [FunctionName("Activity_Validator")]
     public bool ValidateRequest([ActivityTrigger] CustomerModel customerRequest, ILogger log)
     {
-        log.LogInformation($"Validating Request Payload");
+        log.LogInformation("Validating Request Payload");
         var validator = new InputValidator();
-        
+
         // todo update to pass on error message from validator
         log.LogInformation("Validating request");
-        
+
         var validationResult = validator.Validate(customerRequest);
 
         return validationResult.IsValid;
     }
-    
+
 
     [FunctionName("Orchestrator_HttpStart")]
     public async Task<HttpResponseMessage> HttpStart(
@@ -151,9 +160,9 @@ public class Orchestrator
         ILogger log)
     {
         var customerRequest = JsonConvert.DeserializeObject<CustomerModel>(req.Content.ReadAsStringAsync().Result);
-        
+
         // Function input comes from the request content.
-        string instanceId = await starter.StartNewAsync("Orchestrator", customerRequest);
+        var instanceId = await starter.StartNewAsync("Orchestrator", customerRequest);
 
         log.LogInformation($"Started orchestration with ID = '{instanceId}'.");
 

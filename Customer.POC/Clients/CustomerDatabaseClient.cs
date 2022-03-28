@@ -10,8 +10,8 @@ namespace Customer.POC.Clients;
 
 public class CustomerDatabaseClient : ICustomerDatabaseClient
 {
-    private readonly Uri _cosmosConnectionString;
     private readonly string _cosmosAccessKey;
+    private readonly Uri _cosmosConnectionString;
 
     public CustomerDatabaseClient(IOptions<Settings.Settings> settings)
     {
@@ -23,22 +23,20 @@ public class CustomerDatabaseClient : ICustomerDatabaseClient
     {
         var cosmosClient = new CosmosClient(_cosmosConnectionString.ToString());
         var container = cosmosClient.GetContainer(Constants.CosmosDb.databaseName, Constants.CosmosDb.containerName);
-        
+
         //todo - maybe dupe check? 
         var cosmosDbModel = new CustomerModelCosmos().CreateCustomer(customer);
-    
+
         try
         {
             var itemCreationResult = await container.CreateItemAsync(cosmosDbModel);
-            if (itemCreationResult.StatusCode == HttpStatusCode.Created)
-            {
-                return true;
-            }
+            if (itemCreationResult.StatusCode == HttpStatusCode.Created) return true;
         }
         catch (Exception ex)
         {
             var error = ex;
         }
+
         return false;
     }
 }

@@ -19,26 +19,22 @@ public class EmailClient : IEmailClient
 
     public async Task<bool> SendCustomerCreatedEmail(CustomerModel customerModel)
     {
-        try
-        {
-            var emailClient = new SendGridClient(_sendGridKey);
-            var from = new EmailAddress(Constants.Email.CustomerCreated.fromEmail, "Example User");
-            var subject = Constants.Email.CustomerCreated.subject;
-            var to = new EmailAddress(Constants.Email.CustomerCreated.toEmail, "Example User");
-            var plainTextContent = Constants.Email.CustomerCreated.content;
-            var htmlContent = $"<strong>{Constants.Email.CustomerCreated.content}</strong>";
-            var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
+        var emailClient = new SendGridClient(_sendGridKey);
+        var from = new EmailAddress(Constants.Email.CustomerCreated.fromEmail,
+            Constants.Email.CustomerCreated.testUser);
+        var subject = Constants.Email.CustomerCreated.subject;
+        var to = new EmailAddress(Constants.Email.CustomerCreated.toEmail,
+            Constants.Email.CustomerCreated.testUser);
+        var plainTextContent = Constants.Email.CustomerCreated.content;
+        var htmlContent = $"<strong>{Constants.Email.CustomerCreated.content}</strong>";
+        var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
 
-            var response = await emailClient.SendEmailAsync(msg);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            return false;
-        }
+        var response = await emailClient.SendEmailAsync(msg);
+        if (response.IsSuccessStatusCode) return true;
+        return false;
     }
 
-    public async Task<bool> SendCustomerCreationFailedEmail(CustomerModel customerModel)
+    public bool SendCustomerCreationFailedEmail(CustomerModel customerModel)
     {
         try
         {
@@ -51,5 +47,4 @@ public class EmailClient : IEmailClient
             throw;
         }
     }
-    
 }
