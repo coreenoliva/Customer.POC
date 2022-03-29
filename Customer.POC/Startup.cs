@@ -29,7 +29,8 @@ public class Startup : FunctionsStartup
         builder.Services.AddOptions<Settings.Settings>()
             .Configure<IConfiguration>((settings, configuration) => { configuration.Bind(settings); });
 
-        builder.Services.AddSingleton<ICustomerCreationClient, CustomerCreationClient>();
+        
+        builder.Services.AddHttpClient<ICustomerCreationClient, CustomerCreationClient>();
         builder.Services.AddSingleton<ICustomerDatabaseClient, CustomerDatabaseClient>();
         builder.Services.AddSingleton<IEmailClient, EmailClient>();
     }
