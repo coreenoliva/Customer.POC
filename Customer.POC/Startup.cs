@@ -4,6 +4,7 @@ using Customer.POC.Clients.Abstractions;
 using Customer.POC.Models;
 using Customer.POC.Validators;
 using FluentValidation;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,13 +26,12 @@ public class Startup : FunctionsStartup
             .AddEnvironmentVariables()
             .Build();
 
-        // var connectionString = configBuilder["AppConfigurationConnectionString"];
         builder.Services.AddOptions<Settings.Settings>()
             .Configure<IConfiguration>((settings, configuration) => { configuration.Bind(settings); });
 
-        
         builder.Services.AddHttpClient<ICustomerCreationClient, CustomerCreationClient>();
         builder.Services.AddSingleton<ICustomerDatabaseClient, CustomerDatabaseClient>();
         builder.Services.AddSingleton<IEmailClient, EmailClient>();
+        builder.Services.AddSingleton(x => new CosmosClient(configBuilder[$"CosmosDbConnectionString"]));
     }
 }

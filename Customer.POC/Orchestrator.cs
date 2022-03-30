@@ -96,10 +96,9 @@ public class Orchestrator
     {
         log.LogInformation("Creating customer in cosmos db");
         var customerDbCreationResult = await _customerDatabaseClient.CreateCustomer(customerRequest);
-        if (customerDbCreationResult)
+        if (customerDbCreationResult != null)
         {
-            // log id
-            log.LogInformation("Customer successfully created in cosmos db");
+            log.LogInformation($"Customer successfully created in cosmos db. Id: {customerDbCreationResult}");
             return true;
         }
 

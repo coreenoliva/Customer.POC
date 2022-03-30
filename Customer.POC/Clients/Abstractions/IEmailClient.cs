@@ -6,5 +6,4 @@ namespace Customer.POC.Clients.Abstractions;
 public interface IEmailClient
 {
     public Task<bool> SendCustomerCreatedEmail(CustomerModel customerModel);
-    public bool SendCustomerCreationFailedEmail(CustomerModel customerModel);
 }

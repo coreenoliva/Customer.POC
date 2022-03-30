@@ -5,5 +5,5 @@ namespace Customer.POC.Clients.Abstractions;
 
 public interface ICustomerDatabaseClient
 {
-    public Task<bool> CreateCustomer(CustomerModel customer);
+    public Task<string> CreateCustomer(CustomerModel customer);
 }
