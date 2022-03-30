@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Customer.POC.Models;
+using SendGrid;
 
 namespace Customer.POC.Clients.Abstractions;
 

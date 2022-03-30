@@ -8,6 +8,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SendGrid.Extensions.DependencyInjection;
 
 [assembly: FunctionsStartup(typeof(Startup))]
 
@@ -20,7 +21,7 @@ public class Startup : FunctionsStartup
         builder.Services.AddSingleton<AbstractValidator<CustomerModel>, InputValidator>();
         var serviceProvider = builder.Services.BuildServiceProvider();
         var existingConfig = serviceProvider.GetService<IConfiguration>();
-
+        
         var configBuilder = new ConfigurationBuilder()
             .AddConfiguration(existingConfig)
             .AddEnvironmentVariables()
@@ -29,9 +30,11 @@ public class Startup : FunctionsStartup
         builder.Services.AddOptions<Settings.Settings>()
             .Configure<IConfiguration>((settings, configuration) => { configuration.Bind(settings); });
 
+        
+        builder.Services.AddSendGrid(x => x.ApiKey = configBuilder["SendGridKey"]);
+        builder.Services.AddSingleton(x => new CosmosClient(configBuilder[$"CosmosDbConnectionString"]));
         builder.Services.AddHttpClient<ICustomerCreationClient, CustomerCreationClient>();
         builder.Services.AddSingleton<ICustomerDatabaseClient, CustomerDatabaseClient>();
         builder.Services.AddSingleton<IEmailClient, EmailClient>();
-        builder.Services.AddSingleton(x => new CosmosClient(configBuilder[$"CosmosDbConnectionString"]));
     }
 }

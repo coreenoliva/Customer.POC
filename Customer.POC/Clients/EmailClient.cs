@@ -11,15 +11,17 @@ namespace Customer.POC.Clients;
 public class EmailClient : IEmailClient
 {
     private readonly string _sendGridKey;
+    private readonly ISendGridClient _sendGridClient;
 
-    public EmailClient(IOptions<Settings.Settings> settings)
+    public EmailClient(IOptions<Settings.Settings> settings, ISendGridClient sendGridClient)
     {
         _sendGridKey = settings.Value.SendGridKey;
+        _sendGridClient = sendGridClient;
     }
 
     public async Task<bool> SendCustomerCreatedEmail(CustomerModel customerModel)
     {
-        var emailClient = new SendGridClient(_sendGridKey);
+        // var emailClient = new SendGridClient(_sendGridKey);
         var from = new EmailAddress(Constants.Email.CustomerCreated.fromEmail,
             Constants.Email.CustomerCreated.testUser);
         var subject = Constants.Email.CustomerCreated.subject;
@@ -29,7 +31,7 @@ public class EmailClient : IEmailClient
         var htmlContent = $"<strong>{Constants.Email.CustomerCreated.content}</strong>";
         var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
 
-        var response = await emailClient.SendEmailAsync(msg);
+        var response = await _sendGridClient.SendEmailAsync(msg);
         if (response.IsSuccessStatusCode) return true;
         return false;
     }
