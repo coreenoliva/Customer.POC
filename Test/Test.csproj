@@ -9,6 +9,7 @@
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
       <DebugType>portable</DebugType>
+      <PlatformTarget>AnyCPU</PlatformTarget>
     </PropertyGroup>
 
     <ItemGroup>

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Customer.POC.Clients.Abstractions;
 using Customer.POC.Models;
 using Customer.POC.Validators;
+using FluentValidation;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -18,15 +19,18 @@ public class Orchestrator
     private readonly ICustomerCreationClient _customerCreationClient;
     private readonly ICustomerDatabaseClient _customerDatabaseClient;
     private readonly IEmailClient _emailClient;
+    private readonly AbstractValidator<CustomerModel> _inputValidator;
 
     public Orchestrator(
         ICustomerCreationClient customerCreationClient,
         ICustomerDatabaseClient customerDatabaseClient,
-        IEmailClient emailClient)
+        IEmailClient emailClient,
+        AbstractValidator<CustomerModel> inputValidator)
     {
         _customerCreationClient = customerCreationClient;
         _customerDatabaseClient = customerDatabaseClient;
         _emailClient = emailClient;
+        _inputValidator = inputValidator;
     }
 
     [FunctionName("Orchestrator")]
@@ -140,12 +144,11 @@ public class Orchestrator
     public bool ValidateRequest([ActivityTrigger] CustomerModel customerRequest, ILogger log)
     {
         log.LogInformation("Validating Request Payload");
-        var validator = new InputValidator();
-
+        
         // todo update to pass on error message from validator
         log.LogInformation("Validating request");
 
-        var validationResult = validator.Validate(customerRequest);
+        var validationResult = _inputValidator.Validate(customerRequest);
 
         return validationResult.IsValid;
     }
