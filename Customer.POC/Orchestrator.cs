@@ -6,6 +6,7 @@ using Customer.POC.Clients.Abstractions;
 using Customer.POC.Models;
 using Customer.POC.Validators;
 using FluentValidation;
+using FluentValidation.Internal;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.Http;

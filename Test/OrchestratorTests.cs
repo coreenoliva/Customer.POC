@@ -1,10 +1,14 @@
 using System;
+using System.Threading.Tasks;
 using Customer.POC;
 using Customer.POC.Clients;
 using Customer.POC.Clients.Abstractions;
 using Customer.POC.Models;
+using Customer.POC.Validators;
 using FluentValidation;
+using FluentValidation.Internal;
 using FluentValidation.Results;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Shouldly;
@@ -19,7 +23,8 @@ public class OrchestratorTests
     private readonly  Mock<ICustomerDatabaseClient> _mockCustomerDatabaseClient;
     private readonly  Mock<IEmailClient> _mockEmailClient;
     private readonly  Mock<ILogger> _mockLogger;
-    private readonly  Mock<AbstractValidator<CustomerModel>> _mockValidator;
+    // private readonly  Mock<AbstractValidator<CustomerModel>> _mockValidator;
+    private readonly InputValidator _validator;
     
     public OrchestratorTests()
     {
@@ -27,25 +32,23 @@ public class OrchestratorTests
         _mockCustomerDatabaseClient = new Mock<ICustomerDatabaseClient>();
         _mockEmailClient = new Mock<IEmailClient>();
         _mockLogger = new Mock<ILogger>();
-        _mockValidator = new Mock<AbstractValidator<CustomerModel>>();
+        _validator = new InputValidator();
+        // _mockValidator = new Mock<AbstractValidator<CustomerModel>>();
     }
     [Fact]
     public void ValidateRequest_ValidInput_ReturnsTrue()
     {
-        var mockResult = new Mock<ValidationResult>();
-
         // Arrange
+        var mockResult = new Mock<ValidationResult>();
+        var request = CustomerModelTestData.Default;
         mockResult.Setup(x => x.IsValid).Returns(true);
-        
-        _mockValidator.Setup(x => x.Validate(It.IsAny<ValidationContext<CustomerModel>>()))
-                    .Returns(mockResult.Object);
-        
+
         var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
                                             _mockCustomerDatabaseClient.Object,
                                             _mockEmailClient.Object,
-                                            _mockValidator.Object);
+                                            _validator);
         // Act
-        var response = orchestrator.ValidateRequest(CustomerModelTestData.Default, _mockLogger.Object);
+        var response = orchestrator.ValidateRequest(request, _mockLogger.Object);
         
         // Assert
         response.ShouldBe(true);
@@ -56,17 +59,17 @@ public class OrchestratorTests
     {
         // Arrange
         var mockResult = new Mock<ValidationResult>();
+        var request = CustomerModelTestData.MissingCountry;
+
         mockResult.Setup(x => x.IsValid).Returns(false);
-        
-        _mockValidator.Setup(x => x.Validate(It.IsAny<ValidationContext<CustomerModel>>()))
-            .Returns(mockResult.Object);
         
         var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
             _mockCustomerDatabaseClient.Object,
             _mockEmailClient.Object,
-            _mockValidator.Object);
+            _validator);
+        
         // Act
-        var response = orchestrator.ValidateRequest(CustomerModelTestData.MissingCountry, _mockLogger.Object);
+        var response = orchestrator.ValidateRequest(request, _mockLogger.Object);
         
         // Assert
         response.ShouldBe(false);
@@ -83,13 +86,14 @@ public class OrchestratorTests
         var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
             _mockCustomerDatabaseClient.Object,
             _mockEmailClient.Object,
-            _mockValidator.Object);
+            _validator);
 
         // Act
         var response = orchestrator.SendCustomerEmail(request, _mockLogger.Object);
 
         // Assert
         response.Result.ShouldBe(true);
+        _mockEmailClient.Verify(x => x.SendCustomerCreatedEmail(request), Times.Once);
     }
     
     [Fact]
@@ -104,46 +108,117 @@ public class OrchestratorTests
         var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
             _mockCustomerDatabaseClient.Object,
             _mockEmailClient.Object,
-            _mockValidator.Object);
+            _validator);
 
         // Act
         var response = orchestrator.SendCustomerEmail(request, _mockLogger.Object);
 
         // Assert
         response.Result.ShouldBe(false);
+        _mockEmailClient.Verify(x => x.SendCustomerCreatedEmail(request), Times.Once);
     }
 
     [Fact]
     public void CreateCustomerThirdParty_SuccessfullyCreatesCustomer_ReturnsTrue()
     {
-        throw new NotImplementedException();
- 
+        // Arrange
+        var request = CustomerModelTestData.Default;
+        _mockCustomerCreationClient.Setup(x => x.CreateCustomerAsync(request))
+            .ReturnsAsync(true);
+        
+        var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
+            _mockCustomerDatabaseClient.Object,
+            _mockEmailClient.Object,
+            _validator);
+        
+        // Act
+        var response = orchestrator.CreateCustomerThirdParty(request, _mockLogger.Object);
+        
+        // Assert
+        response.Result.ShouldBe(true);
+        _mockCustomerCreationClient.Verify(x => x.CreateCustomerAsync(request), Times.Once);
     }
     
     [Fact]
     public void CreateCustomerThirdParty_ErrorCreatingCustomer_ReturnsFalse()
     {
-        throw new NotImplementedException();
- 
+        // Arrange
+        var request = CustomerModelTestData.Default;
+        _mockCustomerCreationClient.Setup(x => x.CreateCustomerAsync(request))
+            .ReturnsAsync(false);
+        
+        var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
+            _mockCustomerDatabaseClient.Object,
+            _mockEmailClient.Object,
+            _validator);
+        
+        // Act
+        var response = orchestrator.CreateCustomerThirdParty(request, _mockLogger.Object);
+        
+        // Assert
+        response.Result.ShouldBe(false);
+        _mockCustomerCreationClient.Verify(x => x.CreateCustomerAsync(request), Times.Once);
     }
     
     [Fact]
     public void CreateCustomerCosmosDb_SuccessfullyCreatesCustomer_ReturnsTrue()
     {
-        throw new NotImplementedException();
- 
+        // Arrange
+        var request = CustomerModelTestData.Default;
+        _mockCustomerDatabaseClient.Setup(x => x.CreateCustomer(request))
+            .ReturnsAsync(Guid.NewGuid().ToString());
+        
+        var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
+            _mockCustomerDatabaseClient.Object,
+            _mockEmailClient.Object,
+            _validator);
+        
+        // Act
+        var response = orchestrator.CreateCustomerCosmosDb(request, _mockLogger.Object);
+
+        // Assert
+        response.Result.ShouldBe(true);
+        _mockCustomerDatabaseClient.Verify(x => x.CreateCustomer(request), Times.Once);
     }
     
     [Fact]
     public void CreateCustomerCosmosDb_ErrorCreatingCustomer_ReturnsFalse()
     {
-        throw new NotImplementedException();
- 
+        // Arrange
+        var request = CustomerModelTestData.Default;
+        _mockCustomerDatabaseClient.Setup(x => x.CreateCustomer(request))
+            .Returns(Task.FromResult<string?>(null));
+        
+        var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
+            _mockCustomerDatabaseClient.Object,
+            _mockEmailClient.Object,
+            _validator);
+        
+        // Act
+        var response = orchestrator.CreateCustomerCosmosDb(request, _mockLogger.Object);
+
+        // Assert
+        
+        response.Result.ShouldBe(false);
+        _mockCustomerDatabaseClient.Verify(x => x.CreateCustomer(request), Times.Once);
     }
     
     [Fact]
-    public void RunOrchestrator_NoErrors_AllCallsSuccessfull()
+    public void RunOrchestrator_NoErrors_AllCallsSuccessful()
     {
+        // Arrange
+        var mockContext = new Mock<IDurableOrchestrationContext>();
+        
+        var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
+            _mockCustomerDatabaseClient.Object,
+            _mockEmailClient.Object,
+            _validator);
+        
+        // Act
+        var response = orchestrator.RunOrchestrator(mockContext.Object, _mockLogger.Object);
+        
+        // Assert
+        response.ShouldNotBeNull();
         throw new NotImplementedException();
     }
     
