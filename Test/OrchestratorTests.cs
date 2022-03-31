@@ -208,6 +208,20 @@ public class OrchestratorTests
     {
         // Arrange
         var mockContext = new Mock<IDurableOrchestrationContext>();
+        var request = CustomerModelTestData.Default;
+
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.validator, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerThirdParty, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerCosmosDb, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.sendEmailCustomer, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
         
         var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
             _mockCustomerDatabaseClient.Object,
@@ -219,31 +233,155 @@ public class OrchestratorTests
         
         // Assert
         response.ShouldNotBeNull();
-        throw new NotImplementedException();
+        response.Result.Count.ShouldBe(0);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.validator, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerThirdParty, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerCosmosDb, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.sendEmailCustomer, It.IsAny<CustomerModel>()), Times.Once);
     }
     
     [Fact]
     public void RunOrchestrator_ActivityValidatorReturnsFalse_ExitsAfterValidationCall()
     {
-        throw new NotImplementedException();
+        // Arrange
+        var mockContext = new Mock<IDurableOrchestrationContext>();
+
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.validator, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(false);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerThirdParty, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerCosmosDb, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.sendEmailCustomer, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
+            _mockCustomerDatabaseClient.Object,
+            _mockEmailClient.Object,
+            _validator);
+        
+        // Act
+        var response = orchestrator.RunOrchestrator(mockContext.Object, _mockLogger.Object);
+        
+        // Assert
+        response.ShouldNotBeNull();
+        response.Result.Count.ShouldBe(1);
+        response.Result.ShouldContain(Constants.ErrorMessages.requestInvalid);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.validator, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerThirdParty, It.IsAny<CustomerModel>()), Times.Never);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerCosmosDb, It.IsAny<CustomerModel>()), Times.Never);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.sendEmailCustomer, It.IsAny<CustomerModel>()), Times.Never);
     }
     
     [Fact]
     public void RunOrchestrator_ActivityCreateCustomerThirdPartyReturnsFalse_ExitsAfter()
     {
-        throw new NotImplementedException();
+        // Arrange
+        var mockContext = new Mock<IDurableOrchestrationContext>();
+
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.validator, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerThirdParty, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(false);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerCosmosDb, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.sendEmailCustomer, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
+            _mockCustomerDatabaseClient.Object,
+            _mockEmailClient.Object,
+            _validator);
+        
+        // Act
+        var response = orchestrator.RunOrchestrator(mockContext.Object, _mockLogger.Object);
+        
+        // Assert
+        response.ShouldNotBeNull();
+        response.Result.Count.ShouldBe(1);
+        response.Result.ShouldContain(Constants.ErrorMessages.unableToCreateCustomerThirdParty);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.validator, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerThirdParty, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerCosmosDb, It.IsAny<CustomerModel>()), Times.Never);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.sendEmailCustomer, It.IsAny<CustomerModel>()), Times.Never);
     }
     
     [Fact]
     public void RunOrchestrator_ActivityCreateCustomerCosmosDbReturnsFalse_ExitsAfter()
     {
-        throw new NotImplementedException();
+        // Arrange
+        var mockContext = new Mock<IDurableOrchestrationContext>();
+
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.validator, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerThirdParty, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerCosmosDb, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(false);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.sendEmailCustomer, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
+            _mockCustomerDatabaseClient.Object,
+            _mockEmailClient.Object,
+            _validator);
+        
+        // Act
+        var response = orchestrator.RunOrchestrator(mockContext.Object, _mockLogger.Object);
+        
+        // Assert
+        response.ShouldNotBeNull();
+        response.Result.Count.ShouldBe(1);
+        response.Result.ShouldContain(Constants.ErrorMessages.cosmosDbCustomerCreation);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.validator, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerThirdParty, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerCosmosDb, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.sendEmailCustomer, It.IsAny<CustomerModel>()), Times.Never);
     }
     
     [Fact]
-    public void RunOrchestrator_ActivitySEndEmailCustomerReturnsFalse_ExitsAfter()
+    public void RunOrchestrator_ActivitySendEmailCustomerReturnsFalse_ExitsAfter()
     {
-        throw new NotImplementedException();
+        // Arrange
+        var mockContext = new Mock<IDurableOrchestrationContext>();
+
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.validator, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerThirdParty, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerCosmosDb, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(true);
+        
+        mockContext.Setup(x => x.CallActivityAsync<bool>(Constants.ActivityNames.sendEmailCustomer, It.IsAny<CustomerModel>()))
+            .ReturnsAsync(false);
+        
+        var orchestrator = new Orchestrator(_mockCustomerCreationClient.Object,
+            _mockCustomerDatabaseClient.Object,
+            _mockEmailClient.Object,
+            _validator);
+        
+        // Act
+        var response = orchestrator.RunOrchestrator(mockContext.Object, _mockLogger.Object);
+        
+        // Assert
+        response.ShouldNotBeNull();
+        response.Result.Count.ShouldBe(1);
+        response.Result.ShouldContain(Constants.ErrorMessages.unableToSendEmail);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.validator, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerThirdParty, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerCosmosDb, It.IsAny<CustomerModel>()), Times.Once);
+        mockContext.Verify(x => x.CallActivityAsync<bool>(Constants.ActivityNames.sendEmailCustomer, It.IsAny<CustomerModel>()), Times.Once);
     }
     
     [Fact]

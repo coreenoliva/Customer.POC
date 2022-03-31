@@ -46,49 +46,51 @@ public class Orchestrator
             // todo add retries for transient errors 
             // validate 
             var validationResult =
-                await context.CallActivityAsync<bool>("Activity_Validator", request);
+                await context.CallActivityAsync<bool>(Constants.ActivityNames.validator, request);
 
             if (validationResult)
             {
                 // create customer by calling 3rd party
                 var customerCreationResult =
-                    await context.CallActivityAsync<bool>("Activity_CreateCustomer_ThirdParty", request);
+                    await context.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerThirdParty, request);
                 if (customerCreationResult)
                 {
                     // retrieve something from table storage- what about cacheing the data?
                     // create customer in database (cosmos db) 
                     // todo use managed identity 
+                    // todo fix subscription
+                    //var customerCosmosCreationResult = true;
                     var customerCosmosCreationResult =
-                        await context.CallActivityAsync<bool>("Activity_CreateCustomer_CosmosDb", request);
+                        await context.CallActivityAsync<bool>(Constants.ActivityNames.createCustomerCosmosDb, request);
 
                     if (customerCosmosCreationResult)
                     {
                         // send email
                         var sendEmailResult =
-                            await context.CallActivityAsync<bool>("Activity_SendEmail_Customer", request);
-                        if (!sendEmailResult) outputs.Add("Error sending customer created email");
+                            await context.CallActivityAsync<bool>(Constants.ActivityNames.sendEmailCustomer, request);
+                        if (!sendEmailResult) outputs.Add(Constants.ErrorMessages.unableToSendEmail);
                     }
                     else
                     {
                         {
-                            outputs.Add("Unable to create customer in cosmos db");
+                            outputs.Add(Constants.ErrorMessages.cosmosDbCustomerCreation);
                         }
                     }
                 }
                 else
                 {
-                    outputs.Add("Unable to create customer in third party API");
+                    outputs.Add(Constants.ErrorMessages.unableToCreateCustomerThirdParty);
                 }
             }
             else
             {
-                outputs.Add("Request invalid");
+                outputs.Add(Constants.ErrorMessages.requestInvalid);
             }
         }
         catch (Exception ex)
         {
-            outputs.Add("Unhandled exception while creating customer");
-            log.LogError(ex, "Unhandled exception while creating customer");
+            outputs.Add(Constants.ErrorMessages.unhandledException);
+            log.LogError(ex, Constants.ErrorMessages.unhandledException);
             // throw error to fail the orchestration
             throw;
         }
@@ -162,7 +164,7 @@ public class Orchestrator
         [DurableClient] IDurableOrchestrationClient starter,
         ILogger log)
     {
-        var customerRequest = JsonConvert.DeserializeObject<CustomerModel>(req.Content.ReadAsStringAsync().Result);
+        var customerRequest = JsonConvert.DeserializeObject<CustomerModel>(req.Content?.ReadAsStringAsync().Result);
 
         // Function input comes from the request content.
         var instanceId = await starter.StartNewAsync("Orchestrator", customerRequest);
