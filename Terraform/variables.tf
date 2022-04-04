@@ -19,7 +19,6 @@ variable "failover_location" {
 variable "cosmos_db_container_name"{
     default = "customer"
 }
-
 variable "cosmos_db_database_name"{
     default ="playground"
 }
@@ -34,4 +33,4 @@ variable "asp_name"{
 
 variable "customer_poc_function_app_name"{
     default = "customer-poc-func-01"
-}
+} 

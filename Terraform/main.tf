@@ -5,12 +5,19 @@ resource "azurerm_resource_group" "rg"{
 }
 
 // Storage Account
-resource "azurerm_storage_account" "example" {
+resource "azurerm_storage_account" "storage_account" {
   name                     = var.storage_account_name
   resource_group_name      = var.resource_group_name
   location                 = var.resource_group_location
   account_tier             = "Standard"
   account_replication_type = "GRS"
+}
+
+resource "azurerm_application_insights" "application_insights" {
+  name                = var.application_insights_name
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  application_type    = "web"
 }
 
 // Cosmos DB
@@ -78,12 +85,12 @@ resource "azurerm_windows_function_app" "customer_poc" {
 
   site_config {}
   app_settings = {
-
+    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING" = azurerm_storage_account.storage_account.primary_connection_string,
     "FUNCTIONS_WORKER_RUNTIME" = "dotnet",
     "AzureWebJobsSecretStorageType" = "files",
     "CustomerCreationAPIBaseUrl" = "https://0c38b091-4a67-45d2-a394-4867eda89137.mock.pstmn.io",
     "CosmosDbConnectionString" = "AccountEndpoint=https://sandbox-cosmos-db-co.documents.azure.com:443/;AccountKey=NDwPmPfTJlRFghIn9kEJXM4tGTY82wHrsJOMawRiX6lNdQGmzrRat524gnyvqx7vh60DPLtmuVDmEbLtEL66zA==;",
-    "SendGridKey" = "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"
+    "SendGridKey" = "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",
+    "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.application_insights.instrumentation_key,
   }
 }
-
