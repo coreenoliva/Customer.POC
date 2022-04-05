@@ -15,7 +15,7 @@ resource "azurerm_storage_account" "storage_account" {
 
 resource "azurerm_application_insights" "application_insights" {
   name                = var.application_insights_name
-  location            = var.location
+  location            = var.resource_group_location
   resource_group_name = azurerm_resource_group.rg.name
   application_type    = "web"
 }
@@ -92,5 +92,6 @@ resource "azurerm_windows_function_app" "customer_poc" {
     "CosmosDbConnectionString" = "AccountEndpoint=https://sandbox-cosmos-db-co.documents.azure.com:443/;AccountKey=NDwPmPfTJlRFghIn9kEJXM4tGTY82wHrsJOMawRiX6lNdQGmzrRat524gnyvqx7vh60DPLtmuVDmEbLtEL66zA==;",
     "SendGridKey" = "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",
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.application_insights.instrumentation_key,
+    "AzureWebJobsStorage" =  azurerm_storage_account.storage_account.primary_connection_string
   }
 }

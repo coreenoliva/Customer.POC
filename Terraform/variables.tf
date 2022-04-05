@@ -34,3 +34,7 @@ variable "asp_name"{
 variable "customer_poc_function_app_name"{
     default = "customer-poc-func-01"
 } 
+
+variable "application_insights_name"{
+  default = "customer-poc-app-ins"
+}
