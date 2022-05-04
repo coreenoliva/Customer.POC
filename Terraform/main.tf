@@ -89,8 +89,8 @@ resource "azurerm_windows_function_app" "customer_poc" {
     "FUNCTIONS_WORKER_RUNTIME" = "dotnet",
     "AzureWebJobsSecretStorageType" = "files",
     "CustomerCreationAPIBaseUrl" = "https://0c38b091-4a67-45d2-a394-4867eda89137.mock.pstmn.io",
-    "CosmosDbConnectionString" = "AccountEndpoint=https://sandbox-cosmos-db-co.documents.azure.com:443/;AccountKey=NDwPmPfTJlRFghIn9kEJXM4tGTY82wHrsJOMawRiX6lNdQGmzrRat524gnyvqx7vh60DPLtmuVDmEbLtEL66zA==;",
-    "SendGridKey" = "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",
+    "CosmosDbConnectionString" = "todo",
+    "SendGridKey" = "todo",
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.application_insights.instrumentation_key,
     "AzureWebJobsStorage" =  azurerm_storage_account.storage_account.primary_connection_string
   }
