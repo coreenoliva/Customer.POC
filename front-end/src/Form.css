@@ -1,0 +1,9 @@
+.Form {
+    text-align: center;
+    background-color: #e3b3d1;
+    align-items: center;
+    min-height: 100vh;
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+}
